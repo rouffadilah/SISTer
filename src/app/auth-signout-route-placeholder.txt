@@ -1,0 +1,1 @@
+This file is a note only. The actual route is src/app/auth/signout/route.ts.

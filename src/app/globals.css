@@ -1,26 +1,229 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --sister-green: #075333;
+  --sister-deep: #003e29;
+  --sister-gold: #e8b52e;
+  --sister-ink: #173d2d;
+  --sister-muted: #718078;
+  --sister-line: #d5ded7;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+* { box-sizing: border-box; }
+html, body { min-height: 100%; margin: 0; }
 body {
-  background: var(--background);
-  color: var(--foreground);
+  color: var(--sister-ink);
   font-family: Arial, Helvetica, sans-serif;
+}
+a { color: inherit; }
+
+/* LOGIN & DAFTAR: gunakan background sekolah, bukan gambar yang berisi form. */
+.sister-auth-page {
+  min-height: 100vh;
+  min-height: 100svh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 36px clamp(20px, 7vw, 112px);
+  background-color: #f8f8f1;
+  background-image: url("/images/sister-background.png");
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  background-attachment: scroll;
+}
+
+.sister-auth-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  margin: 0;
+  padding: 30px 32px 25px;
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 18px 48px rgba(0, 45, 28, .18);
+  backdrop-filter: blur(7px);
+}
+
+.sister-register-card { max-width: 460px; }
+
+.sister-brand {
+  width: 100%;
+  text-align: center;
+  margin: 0 auto 25px;
+}
+.sister-brand img {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto;
+}
+.sister-brand-subtitle {
+  margin: 3px 0 0;
+  color: var(--sister-green);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .1px;
+}
+
+.sister-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.sister-auth-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  margin: 0;
+  padding: 0 15px;
+  border: 1px solid var(--sister-line);
+  border-radius: 12px;
+  background: #fff;
+  color: #172b22;
+  font-size: 15px;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.sister-auth-input::placeholder { color: #8b9690; }
+.sister-auth-input:focus {
+  border-color: var(--sister-green);
+  box-shadow: 0 0 0 3px rgba(7, 83, 51, .12);
+}
+select.sister-auth-input { cursor: pointer; }
+
+.sister-auth-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 2px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(110deg, var(--sister-green), var(--sister-deep));
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(0, 62, 41, .13);
+  transition: transform .15s, filter .15s;
+}
+.sister-auth-button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.sister-auth-button:disabled { opacity: .65; cursor: wait; transform: none; }
+.sister-button-link { margin-top: 18px; }
+
+.sister-switch {
+  margin: 23px 0 0;
+  text-align: center;
+  font-size: 14px;
+  color: #52665a;
+}
+.sister-switch a {
+  color: #a97912;
+  font-weight: 700;
+  text-decoration: none;
+}
+.sister-switch a:hover { text-decoration: underline; }
+
+.sister-auth-footer {
+  margin-top: 23px;
+  padding-top: 17px;
+  border-top: 1px solid #e4eae5;
+  color: #7b8980;
+  font-size: 12px;
+  line-height: 1.8;
+  text-align: center;
+}
+.sister-message { margin: 0; font-size: 13px; line-height: 1.5; }
+.sister-error { color: #b42318; }
+.sister-success-panel { text-align: center; line-height: 1.6; }
+.sister-success-panel h1 { margin: 0 0 10px; font-size: 22px; }
+.sister-success-panel p { font-size: 14px; color: #52665a; }
+
+/* Komponen halaman internal */
+.sister-internal { min-height: 100vh; background: #f4f7f4; }
+.sister-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 13px clamp(18px, 4vw, 56px);
+  background: var(--sister-deep);
+  color: white;
+  box-shadow: 0 3px 12px #002b1c22;
+}
+.sister-header img { width: 155px; height: auto; }
+.sister-header nav { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.sister-header a { color: white; text-decoration: none; font-size: 14px; }
+.sister-header a:hover { color: #ffda72; }
+.sister-content { width: min(1180px, 100%); margin: 0 auto; padding: 32px 22px; }
+.sister-panel {
+  padding: 22px;
+  border: 1px solid #e1e8e2;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 5px 20px #143b2510;
+}
+.sister-table-wrap { overflow-x: auto; }
+.sister-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.sister-table th, .sister-table td {
+  padding: 13px 12px;
+  border-bottom: 1px solid #e8ede9;
+  text-align: left;
+  white-space: nowrap;
+}
+.sister-table th { background: #f6f8f6; color: #516359; }
+.sister-status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff2cc;
+  color: #815d00;
+  font-size: 12px;
+}
+.sister-status.active { background: #dcfce7; color: #166534; }
+.sister-small-button {
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 11px;
+  background: var(--sister-green);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sister-small-button:disabled { opacity: .5; }
+
+@media (max-width: 700px) {
+  .sister-auth-page {
+    justify-content: center;
+    padding: 22px 14px;
+    /* Menjaga area terang di sisi kiri gambar ketika background di-crop pada ponsel. */
+    background-position: 24% center;
+    background-size: cover;
+  }
+  .sister-auth-card {
+    max-width: 440px;
+    padding: 26px 22px 22px;
+    border-radius: 20px;
+  }
+  .sister-register-card { max-width: 460px; }
+  .sister-brand img { max-width: 245px; }
+  .sister-auth-input { min-height: 50px; }
+  .sister-header { align-items: flex-start; flex-direction: column; }
+  .sister-content { padding: 22px 13px; }
+}
+
+@media (max-width: 380px) {
+  .sister-auth-page { padding: 14px 10px; }
+  .sister-auth-card { padding: 23px 17px 20px; }
+  .sister-brand img { max-width: 220px; }
 }
