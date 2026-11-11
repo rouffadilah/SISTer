@@ -17,8 +17,6 @@ const userTypes = [
   { value: "homeroom_teacher", label: "Wali kelas" },
   { value: "counselor", label: "Guru BK" },
   { value: "parent", label: "Orang tua/wali" },
-  { value: "finance", label: "Keuangan" },
-  { value: "it_admin", label: "Admin IT" },
 ];
 
 export default function RegisterPage() {
@@ -35,25 +33,54 @@ export default function RegisterPage() {
     event.preventDefault();
     setError("");
     setSuccess("");
+
+    const normalizedName = fullName.trim().replace(/\s+/g, " ");
+    const normalizedEmail = email.trim().toLowerCase();
+    if (normalizedName.length < 2) return setError("Nama lengkap minimal 2 karakter.");
     if (!requestedRole) return setError("Pilih jenis pengguna terlebih dahulu.");
     if (password.length < 8) return setError("Kata sandi minimal 8 karakter.");
     if (password !== confirmPassword) return setError("Konfirmasi kata sandi tidak sama.");
-    if (!process.env.NEXT_PUBLIC_SCHOOL_SLUG) return setError("Konfigurasi sekolah belum lengkap. Hubungi administrator.");
+
+    const schoolSlug = process.env.NEXT_PUBLIC_SCHOOL_SLUG;
+    if (!schoolSlug) return setError("Konfigurasi sekolah belum lengkap. Hubungi administrator.");
 
     setLoading(true);
-    const supabase = createClient();
-    const { error: signUpError } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: { data: { full_name: fullName.trim(), requested_role: requestedRole, school_slug: process.env.NEXT_PUBLIC_SCHOOL_SLUG } },
-    });
-    setLoading(false);
-    if (signUpError) {
-      setError(signUpError.message.includes("already registered") ? "Email ini sudah terdaftar. Silakan masuk." : "Pendaftaran belum berhasil. Periksa email dan coba kembali.");
-      return;
+    try {
+      const supabase = createClient();
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          data: {
+            full_name: normalizedName,
+            requested_role: requestedRole,
+            school_slug: schoolSlug,
+          },
+        },
+      });
+
+      if (signUpError) {
+        setError(
+          signUpError.message.toLowerCase().includes("already")
+            ? "Email ini sudah terdaftar. Silakan masuk."
+            : "Pendaftaran belum berhasil. Periksa email dan coba kembali.",
+        );
+        return;
+      }
+
+      setSuccess(
+        "Pendaftaran berhasil dikirim. Periksa email untuk verifikasi bila diminta. Setelah itu, tunggu persetujuan administrator sekolah.",
+      );
+      setFullName("");
+      setEmail("");
+      setRequestedRole("");
+      setPassword("");
+      setConfirmPassword("");
+    } catch {
+      setError("Layanan pendaftaran tidak dapat dihubungi. Periksa koneksi lalu coba kembali.");
+    } finally {
+      setLoading(false);
     }
-    setSuccess("Pendaftaran berhasil dikirim. Jika verifikasi email diaktifkan, buka email Anda terlebih dahulu. Keanggotaan akan berstatus menunggu persetujuan administrator.");
-    setFullName(""); setEmail(""); setRequestedRole(""); setPassword(""); setConfirmPassword("");
   }
 
   return (
@@ -63,7 +90,9 @@ export default function RegisterPage() {
         <TextField id="email" label="Email aktif" compact type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nama@email.com" icon={<MailIcon className="h-5 w-5" />} />
         <div>
           <SelectField id="requestedRole" label="Jenis pengguna" compact required value={requestedRole} onChange={setRequestedRole} options={userTypes} placeholder="Pilih jenis pengguna" describedBy="requestedRoleHint" icon={<UsersIcon className="h-5 w-5" />} />
-          <p id="requestedRoleHint" className="mt-1 px-1 text-[11.5px] leading-snug text-slate-500 sm:text-xs">Jenis pengguna merupakan permintaan dan harus disetujui administrator.</p>
+          <p id="requestedRoleHint" className="mt-1 px-1 text-[11.5px] leading-snug text-slate-500 sm:text-xs">
+            Jenis pengguna merupakan permintaan dan harus disetujui administrator.
+          </p>
         </div>
         <PasswordField id="password" label="Kata sandi" compact required minLength={8} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Kata sandi (minimal 8 karakter)" />
         <PasswordField id="confirmPassword" label="Ulangi kata sandi" compact required minLength={8} autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Ulangi kata sandi" />
