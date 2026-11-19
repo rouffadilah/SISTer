@@ -36,3 +36,10 @@ Gambar yang dipakai (dipotong dari desain latar — boleh diganti dengan file as
 File lama `public/images/gedung-sekolah.jpg` dan `public/images/logo/logo-alquran.png` sudah tidak dipakai dan boleh dihapus.
 
 Huruf Nunito dimuat otomatis lewat `next/font/google`, jadi komputer perlu terhubung internet saat `npm run dev`/`npm run build` pertama kali.
+
+## Menu Kelas & Siswa
+1. Buka Supabase → **SQL Editor** → **New query**, tempel isi `supabase/kelas-siswa.sql`, lalu **Run**. File ini membuat tabel `classes` dan `students` beserta aturan RLS-nya dan aman dijalankan ulang.
+2. Hak akses: semua civitas aktif dapat melihat daftar kelas; data siswa hanya untuk guru/staf/pimpinan/admin (siswa hanya melihat datanya sendiri); menambah, mengubah, dan menghapus hanya untuk **Admin Sekolah**.
+3. Halaman: `/kelas` (daftar kelas per tahun ajaran, tambah kelas), `/kelas/[id]` (siswa per kelas, tambah satu per satu atau tempel dari Excel, atur wali kelas), `/siswa` (cari siswa, pasang kelas untuk siswa yang belum punya kelas).
+4. Format tempel dari Excel: satu siswa per baris, kolom **NIS · NISN · Nama · L/P** (atau hanya nama). NIS/NISN yang sudah terdaftar otomatis dilewati.
+5. Nama wali kelas ditampilkan lewat fungsi `sister_homeroom_names`, sehingga guru non-admin bisa melihatnya tanpa membuka akses ke tabel `profiles`.

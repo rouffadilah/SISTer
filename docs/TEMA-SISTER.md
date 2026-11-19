@@ -25,8 +25,10 @@ Jangan memakai warna lain (mis. indigo/ungu) untuk elemen utama.
 |---|---|
 | `src/components/sister/AppShell.tsx` | Kerangka halaman setelah login: header (logo, menu, nama & peran, tombol Keluar), pola Islami, footer gelombang hijau-emas. Menu baru ditambahkan di `navItems`. |
 | `src/components/sister/ui.tsx` | `PageHeader`, `HeroBanner`, `Card`, `StatCard`, `IconTile`, `Badge`, `ButtonLink`, `buttonClasses()`, `EmptyState`, `membershipStatus()` |
+| `src/components/sister/forms.tsx` | Formulir bertema: `Field`, `inputClass`, `textareaClass`, `FormSubmit` (status menyimpan), `FormMessage` (pesan berhasil/gagal dari server action), `ConfirmButton` (konfirmasi sebelum hapus), tipe `ActionState`. |
 | `src/components/sister/fonts.ts` | Huruf Nunito |
-| `src/lib/sister/viewer.ts` | `getViewer()` — data pengguna yang sedang masuk (nama, email, peran, admin atau bukan, sekolah). Otomatis mengalihkan ke login bila belum masuk. |
+| `src/lib/sister/viewer.ts` | `getViewer()` — data pengguna yang sedang masuk (nama, email, peran, `isAdmin`, `isStaff`, sekolah). Otomatis mengalihkan ke login bila belum masuk. |
+| `src/lib/sister/school.ts` | Bantuan data sekolah: `currentAcademicYear()`, `gradeLabel()`, `getTeacherOptions()`, `getHomeroomNames()`, `isMissingTable()`. |
 | `src/components/auth/` | Halaman Masuk/Daftar (`AuthShell`, kolom isian, ikon). Ikon garis ada di `icons.tsx`. |
 
 ## 3. Membuat halaman baru
@@ -62,7 +64,15 @@ Lalu tambahkan menunya di `navItems` dalam `AppShell.tsx`:
 { key: "presensi", label: "Presensi", href: "/presensi", icon: <ClockIcon className="h-[18px] w-[18px]" /> },
 ```
 
-## 4. Aturan tampilan
+## 4. Formulir dan aksi data
+
+Contoh lengkap ada di modul Kelas & Siswa (`src/app/kelas/`):
+
+- Aksi simpan/hapus ditulis sebagai server action di `actions.ts` (`"use server"`), selalu memeriksa `getViewer()` lalu memanggil `revalidatePath()` halaman yang berubah.
+- Formulir yang perlu menampilkan pesan memakai `useActionState` di komponen klien (`forms.tsx`) dan `<FormMessage state={state} />`.
+- Tabel baru di Supabase wajib memakai RLS. Gunakan fungsi bantu `sister_is_member(school_id)` dan `sister_has_role(school_id, array[...])` dari `supabase/kelas-siswa.sql`, dan simpan SQL-nya di folder `supabase/`.
+
+## 5. Aturan tampilan
 
 - **Setiap halaman setelah login dibungkus `AppShell`.** Jangan membuat header sendiri.
 - Judul halaman memakai `PageHeader`; isi dikelompokkan dalam `Card`.
@@ -74,7 +84,7 @@ Lalu tambahkan menunya di `navItems` dalam `AppShell.tsx`:
 - Semua teks antarmuka dalam bahasa Indonesia.
 - Uji di ponsel (±390 px) dan laptop (±1366 px). Halaman Masuk/Daftar memakai ukuran yang menyesuaikan tinggi layar (`fluidSizes` di `AuthShell.tsx`).
 
-## 5. Catatan teknis
+## 6. Catatan teknis
 
 - Warna penting diberi tanda `!` (mis. `text-white!`) agar tidak tertimpa aturan `a { color: … }` di `globals.css`.
   Jika menambah aturan ke `globals.css`, letakkan di dalam `@layer base { … }` supaya kelas Tailwind tetap bisa menimpanya.

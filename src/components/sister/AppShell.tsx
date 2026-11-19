@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { nunito } from "@/components/sister/fonts";
-import { HomeIcon, LogOutIcon, UsersIcon } from "@/components/auth/icons";
+import { BookOpenIcon, HomeIcon, LogOutIcon, UsersIcon } from "@/components/auth/icons";
 import type { Viewer } from "@/lib/sister/viewer";
 
 /*
@@ -20,10 +20,13 @@ type NavItem = {
   icon: ReactNode;
   /** hanya tampil untuk Admin Sekolah */
   adminOnly?: boolean;
+  /** hanya tampil untuk guru/staf/pimpinan/admin */
+  staffOnly?: boolean;
 };
 
 const navItems: NavItem[] = [
   { key: "dashboard", label: "Dashboard", href: "/dashboard", icon: <HomeIcon className="h-[18px] w-[18px]" /> },
+  { key: "kelas", label: "Kelas & Siswa", href: "/kelas", icon: <BookOpenIcon className="h-[18px] w-[18px]" />, staffOnly: true },
   { key: "users", label: "Manajemen Pengguna", href: "/users", icon: <UsersIcon className="h-[18px] w-[18px]" />, adminOnly: true },
 ];
 
@@ -48,7 +51,7 @@ type AppShellProps = {
 };
 
 export default function AppShell({ viewer, active, children }: AppShellProps) {
-  const items = navItems.filter((item) => !item.adminOnly || viewer.isAdmin);
+  const items = navItems.filter((item) => (!item.adminOnly || viewer.isAdmin) && (!item.staffOnly || viewer.isStaff));
   const roleText = viewer.roles.length ? viewer.roles.join(", ") : viewer.hasAccess ? "Anggota" : "Menunggu persetujuan";
 
   const navLinks = (extra = "") =>

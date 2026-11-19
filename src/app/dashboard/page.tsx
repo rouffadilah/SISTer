@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import AppShell from "@/components/sister/AppShell";
 import { Badge, ButtonLink, Card, HeroBanner, IconTile } from "@/components/sister/ui";
-import { ClockIcon, GraduationCapIcon, MegaphoneIcon, ShieldCheckIcon, UsersIcon } from "@/components/auth/icons";
+import { BookOpenIcon, ClockIcon, GraduationCapIcon, MegaphoneIcon, ShieldCheckIcon, UsersIcon } from "@/components/auth/icons";
 import { getViewer } from "@/lib/sister/viewer";
 
 const schoolValues = [
@@ -12,8 +12,8 @@ const schoolValues = [
 ];
 
 const upcomingModules = [
-  { title: "Akademik & pembelajaran", text: "Jadwal, kelas, materi, tugas, dan penilaian.", icon: <GraduationCapIcon className="h-6 w-6" /> },
   { title: "Presensi", text: "Kehadiran harian siswa per kelas.", icon: <ClockIcon className="h-6 w-6" /> },
+  { title: "Akademik & nilai", text: "Mapel, jadwal, dan nilai siswa.", icon: <GraduationCapIcon className="h-6 w-6" /> },
   { title: "Komunikasi sekolah", text: "Pengumuman dan informasi untuk orang tua/wali.", icon: <MegaphoneIcon className="h-6 w-6" /> },
 ];
 
@@ -53,6 +53,16 @@ export default async function DashboardPage() {
       <div className="mt-6 grid gap-6 lg:mt-8 lg:grid-cols-3">
         <Card title="Akses cepat" description="Modul ditampilkan sesuai hak akses akun Anda." className="lg:col-span-2">
           <div className="grid gap-4 sm:grid-cols-2">
+            {viewer.isStaff && (
+              <Link href="/kelas" className="group rounded-2xl border border-[#0b4a28]/10 bg-white p-5 transition hover:-translate-y-0.5 hover:border-[#0b4a28]/25 hover:shadow-[0_16px_30px_-22px_rgba(12,58,32,0.6)]">
+                <IconTile><BookOpenIcon className="h-6 w-6" /></IconTile>
+                <h3 className="mt-4 font-extrabold text-[#123a25]">Kelas & Siswa</h3>
+                <p className="mt-1 text-sm leading-6 text-slate-600">Rombongan belajar, wali kelas, dan daftar siswa per tahun ajaran.</p>
+                <span className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#f26a0f] transition group-hover:translate-x-1">
+                  Buka modul <span aria-hidden="true">→</span>
+                </span>
+              </Link>
+            )}
             {viewer.isAdmin && (
               <Link href="/users" className="group rounded-2xl border border-[#0b4a28]/10 bg-white p-5 transition hover:-translate-y-0.5 hover:border-[#0b4a28]/25 hover:shadow-[0_16px_30px_-22px_rgba(12,58,32,0.6)]">
                 <IconTile><UsersIcon className="h-6 w-6" /></IconTile>

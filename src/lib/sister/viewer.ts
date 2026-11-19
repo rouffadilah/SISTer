@@ -16,6 +16,9 @@ export const roleLabels: Record<string, string> = {
   it_admin: "Admin IT",
 };
 
+/** Peran yang termasuk guru/staf sekolah (boleh melihat data siswa). */
+export const STAFF_ROLE_CODES = ["school_admin", "principal", "vice_principal", "teacher", "homeroom_teacher", "counselor", "staff", "it_admin"];
+
 export type Viewer = {
   id: string;
   email: string;
@@ -24,6 +27,8 @@ export type Viewer = {
   roles: string[];
   roleCodes: string[];
   isAdmin: boolean;
+  /** guru/staf/pimpinan/admin */
+  isStaff: boolean;
   schoolId: string | null;
   schoolName: string;
   /** false bila akun belum punya keanggotaan aktif (menunggu persetujuan) */
@@ -83,6 +88,7 @@ export async function getViewer(): Promise<Viewer> {
     roles: [...roleNames],
     roleCodes: [...roleCodes],
     isAdmin: roleCodes.has("school_admin"),
+    isStaff: STAFF_ROLE_CODES.some((code) => roleCodes.has(code)),
     schoolId,
     schoolName,
     hasAccess: Boolean(memberships?.length),
