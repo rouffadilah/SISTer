@@ -15,7 +15,7 @@ Audit ini tidak menyalin kode proprietary dari sistem lain. Pola SIDIGS dipakai 
 |---|---|---|
 | Dashboard | Ada | Pertahankan `AppShell`, `getViewer()`, dan komponen UI bersama. |
 | Akademik/rapor | Belum ditemukan modul khusus | Rancang skema akademik setelah definisi periode, mata pelajaran, dan aturan publikasi disepakati. |
-| Presensi | Belum ditemukan modul khusus | Prioritas berikutnya setelah skema akademik; harus memakai RLS per sekolah/kelas. |
+| Presensi | MVP pada branch ini | Harus menerapkan `supabase/presensi.sql` di Supabase sebelum digunakan; akses dibatasi ke admin dan wali kelas yang ditugaskan. |
 | Keuangan/SPP | Belum ditemukan modul khusus | Jangan menyimpan atau mengekspos data pembayaran sebelum kebutuhan audit dan peran keuangan ditetapkan. |
 | CBT | Belum ditemukan modul khusus | Pisahkan bank soal, attempt, dan hasil; jangan membuka kunci jawaban melalui query klien. |
 | LMS | Belum ditemukan modul khusus | Tambahkan setelah model kelas dan siswa stabil. |
@@ -34,7 +34,7 @@ Audit ini tidak menyalin kode proprietary dari sistem lain. Pola SIDIGS dipakai 
 
 ## Prioritas implementasi bertahap
 
-1. Presensi harian berbasis kelas dengan RLS dan audit perubahan.
+1. Terapkan dan uji migrasi presensi di staging, termasuk matrix akses RLS.
 2. Akademik dasar: periode, mata pelajaran, enrollment, nilai, dan publikasi hasil.
 3. Keuangan/SPP sebagai modul terpisah dengan role finance dan audit log.
 4. Portal orang tua setelah relasi parent-student dan kebijakan data disepakati.

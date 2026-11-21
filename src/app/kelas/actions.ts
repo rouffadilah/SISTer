@@ -90,6 +90,17 @@ export async function deleteClass(formData: FormData) {
   const ctx = await adminContext();
   if (!ctx) return;
   const classId = text(formData, "class_id", 60);
+  const { count, error: attendanceError } = await ctx.supabase
+    .from("attendance_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("class_id", classId)
+    .eq("school_id", ctx.schoolId);
+  if (attendanceError && !isMissingTable(attendanceError)) {
+    redirect("/presensi?kelas=" + encodeURIComponent(classId) + "&hapus=periksa");
+  }
+  if ((count ?? 0) > 0) {
+    redirect("/presensi?kelas=" + encodeURIComponent(classId) + "&hapus=riwayat");
+  }
   await ctx.supabase.from("classes").delete().eq("id", classId).eq("school_id", ctx.schoolId);
   revalidatePath("/kelas");
   revalidatePath("/siswa");
