@@ -51,14 +51,38 @@ export async function getHomeroomNames(supabase: Supabase, schoolId: string) {
 
 /** Pilihan wali kelas: anggota aktif yang berperan guru/staf. */
 export async function getTeacherOptions(supabase: Supabase, schoolId: string) {
-  const { data: memberships } = await supabase.from("school_memberships").select("id, user_id").eq("school_id", schoolId).eq("status", "active");
-  const ids = (memberships ?? []).map((m) => m.id);
-  if (!ids.length) return [];
-  const { data: links } = await supabase.from("membership_roles").select("membership_id, role_id").in("membership_id", ids);
-  const roleIds = [...new Set((links ?? []).map((l) => l.role_id))];
-  const { data: roles } = roleIds.length ? await supabase.from("roles").select("id, code").in("id", roleIds) : { data: [] };
-  const staffRoleIds = new Set((roles ?? []).filter((r) => STAFF_ROLE_CODES.includes(r.code)).map((r) => r.id));
-  const staffIds = [...new Set((links ?? []).filter((l) => staffRoleIds.has(l.role_id)).map((l) => l.membership_id))];
-  const names = await getMemberNames(supabase, staffIds);
-  return staffIds.map((id) => ({ id, name: names.get(id) ?? "Tanpa nama" })).sort((a, b) => a.name.localeCompare(b.name, "id"));
+  const { data: memberships } = await supabase
+    .from("school_memberships")
+    .select("id, user_id")
+    .eq("school_id", schoolId)
+    .eq("status", "active");
+  const rows = memberships ?? [];
+  const membershipIds = rows.map((membership) => membership.id);
+  const userIds = [...new Set(rows.map((membership) => membership.user_id))];
+  if (!membershipIds.length) return [];
+
+  const [linksResult, profileResult] = await Promise.all([
+    supabase
+      .from("membership_roles")
+      .select("membership_id, role_id")
+      .eq("school_id", schoolId)
+      .in("membership_id", membershipIds),
+    supabase.from("profiles").select("id, full_name, email").in("id", userIds),
+  ]);
+  const links = linksResult.data ?? [];
+  const roleIds = [...new Set(links.map((link) => link.role_id))];
+  const { data: roles } = roleIds.length
+    ? await supabase.from("roles").select("id, code").in("id", roleIds)
+    : { data: [] };
+  const staffRoleIds = new Set((roles ?? []).filter((role) => STAFF_ROLE_CODES.includes(role.code)).map((role) => role.id));
+  const staffIds = [...new Set(links.filter((link) => staffRoleIds.has(link.role_id)).map((link) => link.membership_id))];
+  const membershipById = new Map(rows.map((membership) => [membership.id, membership]));
+  const profileById = new Map((profileResult.data ?? []).map((profile) => [profile.id, profile]));
+  return staffIds
+    .map((id) => {
+      const profile = profileById.get(membershipById.get(id)?.user_id);
+      return { id, name: profile?.full_name || profile?.email || "Tanpa nama" };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, "id"));
 }
+
