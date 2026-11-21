@@ -18,24 +18,38 @@ export default async function KelasPage({ searchParams }: { searchParams: Promis
   const requestedYear = typeof params.tahun === "string" && isAcademicYear(params.tahun) ? params.tahun : null;
   const supabase = await createClient();
 
-  const { data: yearRows, error: yearError } = await supabase.from("classes").select("academic_year").eq("school_id", viewer.schoolId);
   const thisYear = currentAcademicYear();
-  const years = [...new Set([thisYear, ...(yearRows ?? []).map((r) => r.academic_year as string)])].sort().reverse();
   const year = requestedYear ?? thisYear;
+  const [yearResult, classResult] = await Promise.all([
+    supabase.from("classes").select("academic_year").eq("school_id", viewer.schoolId),
+    supabase
+      .from("classes")
+      .select("id, name, grade, program, academic_year, homeroom_membership_id")
+      .eq("school_id", viewer.schoolId)
+      .eq("academic_year", year)
+      .order("grade")
+      .order("name"),
+  ]);
+  const yearRows = yearResult.data;
+  const yearError = yearResult.error;
+  const years = [...new Set([thisYear, ...(yearRows ?? []).map((r) => r.academic_year as string)])].sort().reverse();
+  const classes: ClassRow[] = (classResult.data ?? []).sort(
+    (a: ClassRow, b: ClassRow) => a.grade - b.grade || a.name.localeCompare(b.name, "id", { numeric: true }),
+  );
 
-  const { data: classData } = await supabase
-    .from("classes")
-    .select("id, name, grade, program, academic_year, homeroom_membership_id")
-    .eq("school_id", viewer.schoolId)
-    .eq("academic_year", year)
-    .order("grade")
-    .order("name");
-  const classes: ClassRow[] = (classData ?? []).sort((a: ClassRow, b: ClassRow) => a.grade - b.grade || a.name.localeCompare(b.name, "id", { numeric: true }));
-
-  const { data: counts } = classes.length ? await supabase.rpc("sister_class_counts", { p_school_id: viewer.schoolId }) : { data: [] };
+  const [countResult, homeroomNames, teachers] = await Promise.all([
+    classes.length
+      ? supabase.rpc("sister_class_counts", { p_school_id: viewer.schoolId })
+      : Promise.resolve({ data: [] as { class_id: string; total: number }[] }),
+    classes.length
+      ? getHomeroomNames(supabase, viewer.schoolId)
+      : Promise.resolve(new Map<string, string>()),
+    viewer.isAdmin
+      ? getTeacherOptions(supabase, viewer.schoolId)
+      : Promise.resolve([] as { id: string; name: string }[]),
+  ]);
+  const counts = countResult.data ?? [];
   const countByClass = new Map<string, number>(((counts ?? []) as { class_id: string; total: number }[]).map((c) => [c.class_id, Number(c.total)]));
-  const homeroomNames = classes.length ? await getHomeroomNames(supabase, viewer.schoolId) : new Map<string, string>();
-  const teachers = viewer.isAdmin ? await getTeacherOptions(supabase, viewer.schoolId) : [];
 
   const totalStudents = classes.reduce((sum, c) => sum + (countByClass.get(c.id) ?? 0), 0);
   const withoutHomeroom = classes.filter((c) => !c.homeroom_membership_id).length;
