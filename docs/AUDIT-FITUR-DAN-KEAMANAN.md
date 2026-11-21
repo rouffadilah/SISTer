@@ -9,6 +9,16 @@ SISTer sudah memiliki fondasi autentikasi Supabase SSR, dashboard, pendaftaran a
 
 Audit ini tidak menyalin kode proprietary dari sistem lain. Pola SIDIGS dipakai hanya sebagai daftar kebutuhan sekolah yang perlu diprioritaskan.
 
+## Performa navigasi
+
+Menu internal sudah menggunakan `next/link`, jadi perpindahan tidak memicu muat ulang penuh browser. Kode halaman sebelumnya tetap menunggu beberapa query Supabase secara berurutan:
+
+- `getViewer()` mengambil sekolah dan peran satu demi satu untuk setiap keanggotaan.
+- Halaman Manajemen Pengguna mengambil peran per keanggotaan (pola N+1).
+- Halaman Kelas menunggu daftar tahun, kelas, jumlah siswa, nama wali, dan pilihan guru secara berurutan.
+
+Branch ini mengelompokkan lookup peran, menghapus pola N+1 tersebut, dan menjalankan pembacaan yang tidak saling bergantung secara paralel. `src/app/loading.tsx` menampilkan kerangka saat server masih menyiapkan halaman. Waktu respons aktual belum diukur karena sesi Preview terautentikasi dan koneksi Supabase staging belum tersedia.
+
 ## Matriks cakupan
 
 | Alur sekolah | Status di repository | Catatan aman |
