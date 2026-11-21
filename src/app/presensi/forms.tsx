@@ -51,7 +51,7 @@ export function AttendanceForm({
                 <td className="whitespace-nowrap px-4 py-2.5 font-bold text-[#123a25]">{student.full_name}</td>
                 <td className="whitespace-nowrap px-4 py-2.5 text-slate-600">{student.nis ?? "—"}</td>
                 <td className="px-4 py-2.5">
-                  <label className="sr-only" htmlFor={"status_" + student.id}>Kehadiran " + student.full_name</label>
+                  <label className="sr-only" htmlFor={"status_" + student.id}>Kehadiran {student.full_name}</label>
                   <select
                     id={"status_" + student.id}
                     name={"status_" + student.id}
