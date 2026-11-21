@@ -9,7 +9,9 @@ import { getViewer } from "@/lib/sister/viewer";
 
 type ClassRow = { id: string; name: string; grade: number; academic_year: string; homeroom_membership_id: string | null };
 type StudentRow = { id: string; full_name: string; nis: string | null };
-type AttendanceRecord = { student_id: string | null; status: "present" | "late" | "sick" | "permission" | "absent" };
+type AttendanceStatus = "present" | "late" | "sick" | "permission" | "absent";
+type AttendanceRecord = { id: string; student_id: string | null; student_name: string; status: AttendanceStatus };
+type AttendanceEntry = { key: string; student_id: string | null; record_id: string | null; full_name: string; nis: string | null; status: AttendanceStatus | null; historical: boolean };
 
 function validDate(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -71,8 +73,8 @@ export default async function PresensiPage({
   }
 
   const requestedClass = typeof params.kelas === "string" ? params.kelas : "";
-  const currentAcademicYear = new Intl.DateTimeFormat("en", { timeZone: "Asia/Jakarta", year: "numeric" }).format(new Date());
-  const academicYearPrefix = Number(currentAcademicYear) - (new Date(attendanceDate + "T00:00:00.000Z").getUTCMonth() < 6 ? 1 : 0);
+  const selectedDate = new Date(attendanceDate + "T00:00:00.000Z");
+  const academicYearPrefix = selectedDate.getUTCFullYear() - (selectedDate.getUTCMonth() < 6 ? 1 : 0);
   const activeYear = academicYearPrefix + "/" + (academicYearPrefix + 1);
   const selectedClass = classes.find((item) => item.id === requestedClass) ?? classes.find((item) => item.academic_year === activeYear) ?? classes[0] ?? null;
 
@@ -81,26 +83,52 @@ export default async function PresensiPage({
   let sessionError: { code?: string; message?: string } | null = null;
   let recordsError: { code?: string; message?: string } | null = null;
   let records: AttendanceRecord[] = [];
+  let sessionRevision = 0;
 
   if (selectedClass) {
     const [studentResult, sessionResult] = await Promise.all([
       supabase.from("students").select("id, full_name, nis").eq("school_id", viewer.schoolId).eq("class_id", selectedClass.id).eq("status", "active").order("full_name"),
-      supabase.from("attendance_sessions").select("id").eq("school_id", viewer.schoolId).eq("class_id", selectedClass.id).eq("attendance_date", attendanceDate).maybeSingle(),
+      supabase.from("attendance_sessions").select("id, revision").eq("school_id", viewer.schoolId).eq("class_id", selectedClass.id).eq("attendance_date", attendanceDate).maybeSingle(),
     ]);
     students = (studentResult.data ?? []) as StudentRow[];
     studentError = studentResult.error;
     sessionError = sessionResult.error;
+    sessionRevision = sessionResult.data?.revision ?? 0;
 
     if (sessionResult.data?.id) {
       const recordsResult = await supabase
         .from("attendance_records")
-        .select("student_id, status")
+        .select("id, student_id, student_name, status")
         .eq("school_id", viewer.schoolId)
         .eq("session_id", sessionResult.data.id);
       records = (recordsResult.data ?? []) as AttendanceRecord[];
       recordsError = recordsResult.error;
     }
   }
+
+  const currentStudentIds = new Set(students.map((student) => student.id));
+  const recordByStudent = new Map(records.filter((record) => record.student_id).map((record) => [record.student_id as string, record]));
+  const attendanceRows: AttendanceEntry[] = [
+    ...students.map((student) => ({
+      key: "student-" + student.id,
+      student_id: student.id,
+      record_id: null,
+      full_name: student.full_name,
+      nis: student.nis,
+      status: recordByStudent.get(student.id)?.status ?? null,
+      historical: false,
+    })),
+    ...records.filter((record) => !record.student_id || !currentStudentIds.has(record.student_id)).map((record) => ({
+      key: "record-" + record.id,
+      student_id: null,
+      record_id: record.id,
+      full_name: record.student_name,
+      nis: null,
+      status: record.status,
+      historical: true,
+    })),
+  ];
+  const historicalCount = attendanceRows.filter((row) => row.historical).length;
 
   const setupNeeded = [classError, studentError, sessionError, recordsError].some(isMissingTable);
   const loadFailed = [classError, studentError, sessionError, recordsError].some((error) => Boolean(error && !isMissingTable(error)));
@@ -109,7 +137,9 @@ export default async function PresensiPage({
     ? "Kelas tidak dihapus karena sudah memiliki riwayat presensi. Riwayat tetap tersimpan."
     : params.hapus === "periksa"
       ? "Kelas belum dihapus karena riwayat presensi tidak dapat diperiksa. Coba lagi."
-      : "";
+      : params.hapus === "gagal"
+        ? "Kelas belum berhasil dihapus. Coba lagi atau hubungi Admin Sekolah."
+        : "";
 
   return (
     <AppShell viewer={viewer} active="presensi">
@@ -155,7 +185,7 @@ export default async function PresensiPage({
             </form>
           </Card>
 
-          {students.length === 0 ? (
+          {attendanceRows.length === 0 ? (
             <Card className="mt-6">
               <EmptyState title={"Belum ada siswa aktif di " + selectedClass?.name}>
                 Tambahkan siswa ke kelas terlebih dahulu melalui menu Kelas & Siswa.
@@ -173,12 +203,12 @@ export default async function PresensiPage({
               <Card
                 className="mt-6"
                 title={"Presensi " + selectedClass?.name}
-                description={attendanceDate.split("-").reverse().join("/") + " · " + students.length + " siswa aktif"}
+                description={attendanceDate.split("-").reverse().join("/") + " · " + students.length + " siswa aktif" + (historicalCount ? " · " + historicalCount + " rekam historis" : "")}
                 action={records.length ? <Badge tone="green">Sudah disimpan</Badge> : <Badge tone="slate">Belum disimpan</Badge>}
                 flush
               >
                 <div className="p-4 sm:p-6">
-                  <AttendanceForm classId={selectedClass?.id ?? ""} attendanceDate={attendanceDate} students={students} records={records} />
+                  <AttendanceForm classId={selectedClass?.id ?? ""} attendanceDate={attendanceDate} revision={sessionRevision} entries={attendanceRows} />
                 </div>
               </Card>
             </>
