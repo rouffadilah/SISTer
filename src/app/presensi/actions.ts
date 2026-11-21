@@ -18,7 +18,7 @@ function validDate(value: string) {
 function friendlyError(error: { code?: string; message?: string }, fallback: string) {
   if (isMissingTable(error)) return "Fitur presensi belum disiapkan. Minta admin menerapkan supabase/presensi.sql.";
   if (error.code === "42501" || error.code === "PGRST301") return "Akun Anda tidak memiliki izin untuk mengubah presensi kelas ini.";
-  if (error.code === "40001") return "Data presensi atau daftar siswa berubah sejak halaman dibuka. Muat ulang sebelum menyimpan."; 
+  if (error.code === "40001") return "Data presensi atau daftar siswa berubah sejak halaman dibuka. Muat ulang sebelum menyimpan.";
   return fallback;
 }
 
