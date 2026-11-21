@@ -15,7 +15,7 @@ Audit ini tidak menyalin kode proprietary dari sistem lain. Pola SIDIGS dipakai 
 |---|---|---|
 | Dashboard | Ada | Pertahankan `AppShell`, `getViewer()`, dan komponen UI bersama. |
 | Akademik/rapor | Belum ditemukan modul khusus | Rancang skema akademik setelah definisi periode, mata pelajaran, dan aturan publikasi disepakati. |
-| Presensi | MVP pada branch ini | Harus menerapkan `supabase/presensi.sql` di Supabase sebelum digunakan; akses dibatasi ke admin dan wali kelas yang ditugaskan. |
+| Presensi | MVP pada branch ini | Pencatatan transaksional dengan pemeriksaan revisi; rekam historis memakai snapshot nama. Terapkan `supabase/presensi.sql` di Supabase sebelum digunakan. |
 | Keuangan/SPP | Belum ditemukan modul khusus | Jangan menyimpan atau mengekspos data pembayaran sebelum kebutuhan audit dan peran keuangan ditetapkan. |
 | CBT | Belum ditemukan modul khusus | Pisahkan bank soal, attempt, dan hasil; jangan membuka kunci jawaban melalui query klien. |
 | LMS | Belum ditemukan modul khusus | Tambahkan setelah model kelas dan siswa stabil. |
@@ -29,6 +29,7 @@ Audit ini tidak menyalin kode proprietary dari sistem lain. Pola SIDIGS dipakai 
 - `sister_security_migration.sql` memakai `SECURITY DEFINER` dengan `search_path = ''`, revoke/grant eksplisit, dan pemeriksaan admin berbasis sekolah. Ini adalah pola yang tepat, tetapi migrasi aktif di Supabase tetap harus diverifikasi karena repository tidak dapat memastikan trigger/policy yang sudah terpasang di project.
 - `kelas-siswa.sql` membatasi mutasi `classes` dan `students` ke `school_admin`, serta memvalidasi bahwa `class_id` berasal dari sekolah yang sama.
 - `getViewer()` membaca membership aktif dan role dari database. Route/page tetap perlu memeriksa `isAdmin`/`isStaff` sebelum menampilkan aksi sensitif; RLS harus tetap menjadi batas terakhir.
+- Mutasi presensi hanya melalui RPC `SECURITY DEFINER` yang memeriksa peran dan kelas, mengunci sesi/kelas, serta menolak revisi kedaluwarsa. Tabel presensi hanya memberi role authenticated akses baca langsung; validasi matrix RLS tetap wajib dilakukan di staging.
 - `src/proxy.ts` hanya menyegarkan sesi. Proxy bukan pengganti otorisasi halaman atau RLS.
 - Tidak ada secret yang ditambahkan. Nilai Supabase tetap berasal dari environment variable.
 
@@ -43,6 +44,6 @@ Audit ini tidak menyalin kode proprietary dari sistem lain. Pola SIDIGS dipakai 
 ## Verifikasi yang masih diperlukan
 
 - Jalankan migrasi Supabase di staging dan periksa policy/trigger aktif melalui SQL introspection.
-- Uji matrix akses untuk admin, guru, siswa, orang tua, dan akun pending.
+- Uji matrix akses presensi untuk admin sekolah, wali kelas yang ditugaskan, guru lain, siswa, dan akun pending; uji dua penyimpanan bersamaan dan perubahan roster historis.
 - Jalankan `npm run lint`, `npm run typecheck`, dan `npm run build` pada checkout dengan dependency terpasang.
 - Tambahkan test integration untuk RPC approval dan RLS sebelum menambah modul finansial atau portal orang tua.
