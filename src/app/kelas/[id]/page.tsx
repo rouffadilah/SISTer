@@ -18,24 +18,36 @@ export default async function KelasDetailPage({ params }: { params: Promise<{ id
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
   const supabase = await createClient();
-  const { data: kelas } = await supabase
-    .from("classes")
-    .select("id, name, grade, program, academic_year, homeroom_membership_id")
-    .eq("id", id)
-    .eq("school_id", viewer.schoolId)
-    .maybeSingle();
+  const [classResult, studentResult] = await Promise.all([
+    supabase
+      .from("classes")
+      .select("id, name, grade, program, academic_year, homeroom_membership_id")
+      .eq("id", id)
+      .eq("school_id", viewer.schoolId)
+      .maybeSingle(),
+    supabase
+      .from("students")
+      .select("id, full_name, nis, nisn, gender, membership_id")
+      .eq("school_id", viewer.schoolId)
+      .eq("class_id", id)
+      .eq("status", "active")
+      .order("full_name"),
+  ]);
+  const kelas = classResult.data;
   if (!kelas) notFound();
+  const students: StudentRow[] = studentResult.data ?? [];
 
-  const { data: studentData } = await supabase
-    .from("students")
-    .select("id, full_name, nis, nisn, gender, membership_id")
-    .eq("class_id", id)
-    .eq("status", "active")
-    .order("full_name");
-  const students: StudentRow[] = studentData ?? [];
-
-  const homeroomName = kelas.homeroom_membership_id ? (await getHomeroomNames(supabase, viewer.schoolId)).get(kelas.homeroom_membership_id) : null;
-  const teachers = viewer.isAdmin ? await getTeacherOptions(supabase, viewer.schoolId) : [];
+  const [homeroomNames, teachers] = await Promise.all([
+    kelas.homeroom_membership_id
+      ? getHomeroomNames(supabase, viewer.schoolId)
+      : Promise.resolve(new Map<string, string>()),
+    viewer.isAdmin
+      ? getTeacherOptions(supabase, viewer.schoolId)
+      : Promise.resolve([] as { id: string; name: string }[]),
+  ]);
+  const homeroomName = kelas.homeroom_membership_id
+    ? homeroomNames.get(kelas.homeroom_membership_id)
+    : null;
   const male = students.filter((s) => s.gender === "L").length;
   const female = students.filter((s) => s.gender === "P").length;
 
