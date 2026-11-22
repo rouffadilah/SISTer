@@ -27,27 +27,38 @@ export default async function UsersPage() {
     .order("created_at", { ascending: false });
 
   const rows: MembershipRow[] = allMemberships ?? [];
+  const membershipIds = rows.map((row) => row.id);
   const userIds = [...new Set(rows.map((row) => row.user_id))];
-  const { data: profiles } = userIds.length
-    ? await supabase.from("profiles").select("id, full_name, email").in("id", userIds)
-    : { data: [] as ProfileRow[] };
-  const profileById = new Map((profiles ?? []).map((profile: ProfileRow) => [profile.id, profile]));
 
+  const [profileResult, assignmentResult] = await Promise.all([
+    userIds.length
+      ? supabase.from("profiles").select("id, full_name, email").in("id", userIds)
+      : Promise.resolve({ data: [] as ProfileRow[] }),
+    membershipIds.length
+      ? supabase
+          .from("membership_roles")
+          .select("membership_id, role_id")
+          .eq("school_id", viewer.schoolId)
+          .in("membership_id", membershipIds)
+      : Promise.resolve({ data: [] as { membership_id: string; role_id: string }[] }),
+  ]);
+  const profileById = new Map((profileResult.data ?? []).map((profile: ProfileRow) => [profile.id, profile]));
+
+  const roleIds = [...new Set((assignmentResult.data ?? []).map((assignment) => assignment.role_id))];
+  const { data: roleRows } = roleIds.length
+    ? await supabase.from("roles").select("id, code, name").in("id", roleIds)
+    : { data: [] };
+  const roleById = new Map((roleRows ?? []).map((role) => [
+    role.id,
+    roleLabels[role.code] ?? role.name ?? role.code,
+  ]));
   const roleByMembership = new Map<string, string[]>();
-  for (const row of rows) {
-    const { data: assignments } = await supabase
-      .from("membership_roles")
-      .select("role_id")
-      .eq("membership_id", row.id)
-      .eq("school_id", viewer.schoolId);
-    const roleIds = (assignments ?? []).map((assignment) => assignment.role_id);
-    if (roleIds.length) {
-      const { data: roles } = await supabase.from("roles").select("code, name").in("id", roleIds);
-      roleByMembership.set(
-        row.id,
-        (roles ?? []).map((role) => roleLabels[role.code] ?? role.name ?? role.code),
-      );
-    }
+  for (const assignment of assignmentResult.data ?? []) {
+    const label = roleById.get(assignment.role_id);
+    if (!label) continue;
+    const labels = roleByMembership.get(assignment.membership_id) ?? [];
+    labels.push(label);
+    roleByMembership.set(assignment.membership_id, labels);
   }
 
   const activeCount = rows.filter((row) => row.status === "active").length;

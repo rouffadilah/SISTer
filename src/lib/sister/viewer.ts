@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-/** Nama peran yang ditampilkan ke pengguna, berdasarkan kode di tabel `roles`. */
+/** Nama peran yang ditampilkan ke pengguna, berdasarkan kode di tabel roles. */
 export const roleLabels: Record<string, string> = {
   school_admin: "Admin Sekolah",
   principal: "Kepala Sekolah",
@@ -23,22 +23,16 @@ export type Viewer = {
   id: string;
   email: string;
   name: string;
-  /** Label peran, mis. ["Admin Sekolah"] */
   roles: string[];
   roleCodes: string[];
   isAdmin: boolean;
-  /** guru/staf/pimpinan/admin */
   isStaff: boolean;
   schoolId: string | null;
   schoolName: string;
-  /** false bila akun belum punya keanggotaan aktif (menunggu persetujuan) */
   hasAccess: boolean;
 };
 
-/**
- * Data pengguna yang sedang masuk, dipakai semua halaman di dalam aplikasi.
- * Mengalihkan ke halaman login bila belum masuk.
- */
+/** Data pengguna yang sedang masuk, dipakai semua halaman di dalam aplikasi. */
 export async function getViewer(): Promise<Viewer> {
   const supabase = await createClient();
   const {
@@ -46,39 +40,59 @@ export async function getViewer(): Promise<Viewer> {
   } = await supabase.auth.getUser();
   if (!user) redirect("/");
 
-  const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+  const [profileResult, membershipResult] = await Promise.all([
+    supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+    supabase
+      .from("school_memberships")
+      .select("id, school_id, status")
+      .eq("user_id", user.id)
+      .eq("status", "active"),
+  ]);
+  const profile = profileResult.data;
+  const memberships = membershipResult.data ?? [];
   const metaName = typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "";
   const name = profile?.full_name || metaName || user.email || "Pengguna";
 
-  const { data: memberships } = await supabase
-    .from("school_memberships")
-    .select("id, school_id, status")
-    .eq("user_id", user.id)
-    .eq("status", "active");
+  const schoolIds = [...new Set(memberships.map((membership) => membership.school_id))];
+  const membershipIds = memberships.map((membership) => membership.id);
+  const schools: { id: string; name: string }[] = [];
+  const assignments: { membership_id: string; school_id: string; role_id: string }[] = [];
 
+  if (schoolIds.length) {
+    const [schoolResult, assignmentResult] = await Promise.all([
+      supabase.from("schools").select("id, name").in("id", schoolIds),
+      supabase
+        .from("membership_roles")
+        .select("membership_id, school_id, role_id")
+        .in("membership_id", membershipIds)
+        .in("school_id", schoolIds),
+    ]);
+    schools.push(...(schoolResult.data ?? []));
+    assignments.push(...(assignmentResult.data ?? []));
+  }
+
+  const roleIds = [...new Set(assignments.map((assignment) => assignment.role_id))];
+  const { data: roleRows } = roleIds.length
+    ? await supabase.from("roles").select("id, code, name").in("id", roleIds)
+    : { data: [] };
+  const roleById = new Map((roleRows ?? []).map((role) => [role.id, role]));
   const roleCodes = new Set<string>();
   const roleNames = new Set<string>();
+
+  for (const assignment of assignments) {
+    const role = roleById.get(assignment.role_id);
+    if (!role) continue;
+    roleCodes.add(role.code);
+    roleNames.add(roleLabels[role.code] ?? role.name ?? role.code);
+  }
+
+  const schoolById = new Map(schools.map((school) => [school.id, school.name]));
   let schoolId: string | null = null;
   let schoolName = "SMA Islam Cikal Harapan 1";
-
-  for (const membership of memberships ?? []) {
+  for (const membership of memberships) {
     schoolId = membership.school_id;
-    const { data: school } = await supabase.from("schools").select("name").eq("id", membership.school_id).maybeSingle();
-    if (school?.name) schoolName = school.name;
-
-    const { data: assignments } = await supabase
-      .from("membership_roles")
-      .select("role_id")
-      .eq("membership_id", membership.id)
-      .eq("school_id", membership.school_id);
-    const roleIds = (assignments ?? []).map((item) => item.role_id);
-    if (!roleIds.length) continue;
-
-    const { data: roles } = await supabase.from("roles").select("code, name").in("id", roleIds);
-    for (const role of roles ?? []) {
-      roleCodes.add(role.code);
-      roleNames.add(roleLabels[role.code] ?? role.name ?? role.code);
-    }
+    const nameForSchool = schoolById.get(membership.school_id);
+    if (nameForSchool) schoolName = nameForSchool;
   }
 
   return {
@@ -91,6 +105,6 @@ export async function getViewer(): Promise<Viewer> {
     isStaff: STAFF_ROLE_CODES.some((code) => roleCodes.has(code)),
     schoolId,
     schoolName,
-    hasAccess: Boolean(memberships?.length),
+    hasAccess: memberships.length > 0,
   };
 }

@@ -90,7 +90,28 @@ export async function deleteClass(formData: FormData) {
   const ctx = await adminContext();
   if (!ctx) return;
   const classId = text(formData, "class_id", 60);
-  await ctx.supabase.from("classes").delete().eq("id", classId).eq("school_id", ctx.schoolId);
+  const { count, error: attendanceError } = await ctx.supabase
+    .from("attendance_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("class_id", classId)
+    .eq("school_id", ctx.schoolId);
+  if (attendanceError && !isMissingTable(attendanceError)) {
+    redirect("/presensi?kelas=" + encodeURIComponent(classId) + "&hapus=periksa");
+  }
+  if ((count ?? 0) > 0) {
+    redirect("/presensi?kelas=" + encodeURIComponent(classId) + "&hapus=riwayat");
+  }
+  const { error: deleteError } = await ctx.supabase
+    .from("classes")
+    .delete()
+    .eq("id", classId)
+    .eq("school_id", ctx.schoolId);
+  if (deleteError) {
+    if (deleteError.code === "23503" && deleteError.message?.includes("attendance_sessions")) {
+      redirect("/presensi?kelas=" + encodeURIComponent(classId) + "&hapus=riwayat");
+    }
+    redirect("/presensi?kelas=" + encodeURIComponent(classId) + "&hapus=gagal");
+  }
   revalidatePath("/kelas");
   revalidatePath("/siswa");
   redirect("/kelas");

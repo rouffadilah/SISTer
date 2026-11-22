@@ -24,11 +24,8 @@ export default async function SiswaPage({ searchParams }: { searchParams: Promis
   const page = Math.max(1, Number(typeof params.hal === "string" ? params.hal : 1) || 1);
 
   const supabase = await createClient();
-  const { data: classData } = await supabase.from("classes").select("id, name, academic_year, grade").eq("school_id", viewer.schoolId);
-  const classes: ClassRow[] = (classData ?? []).sort((a: ClassRow, b: ClassRow) => b.academic_year.localeCompare(a.academic_year) || a.grade - b.grade || a.name.localeCompare(b.name, "id", { numeric: true }));
-  const classById = new Map(classes.map((c) => [c.id, c]));
+  const classQuery = supabase.from("classes").select("id, name, academic_year, grade").eq("school_id", viewer.schoolId);
   const thisYear = currentAcademicYear();
-  const currentClasses = classes.filter((c) => c.academic_year === thisYear);
 
   let query = supabase
     .from("students")
@@ -41,7 +38,13 @@ export default async function SiswaPage({ searchParams }: { searchParams: Promis
   if (kelas === "tanpa") query = query.is("class_id", null);
   else if (/^[0-9a-f-]{36}$/i.test(kelas)) query = query.eq("class_id", kelas);
 
-  const { data: studentData, count, error } = await query;
+  const [classResult, studentResult] = await Promise.all([classQuery, query]);
+  const classData = classResult.data;
+  const classes: ClassRow[] = (classData ?? []).sort((a: ClassRow, b: ClassRow) => b.academic_year.localeCompare(a.academic_year) || a.grade - b.grade || a.name.localeCompare(b.name, "id", { numeric: true }));
+  const classById = new Map(classes.map((c) => [c.id, c]));
+  const currentClasses = classes.filter((c) => c.academic_year === thisYear);
+
+  const { data: studentData, count, error } = studentResult;
   const students: StudentRow[] = studentData ?? [];
   const total = count ?? students.length;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
