@@ -17,7 +17,7 @@ Menu internal sudah menggunakan `next/link`, jadi perpindahan tidak memicu muat 
 - Halaman Manajemen Pengguna mengambil peran per keanggotaan (pola N+1).
 - Halaman Kelas menunggu daftar tahun, kelas, jumlah siswa, nama wali, dan pilihan guru secara berurutan.
 
-Branch ini mengelompokkan lookup peran, menghapus pola N+1 tersebut, dan menjalankan pembacaan yang tidak saling bergantung secara paralel. `src/app/loading.tsx` menampilkan kerangka saat server masih menyiapkan halaman. Waktu respons aktual belum diukur karena sesi Preview terautentikasi dan koneksi Supabase staging belum tersedia.
+Branch ini mengelompokkan lookup peran, menghapus pola N+1 tersebut, dan menjalankan pembacaan yang tidak saling bergantung secara paralel. Detail kelas kini memuat kelas dan roster bersama-sama, lalu memuat nama wali dan pilihan guru bersama-sama. Pencarian siswa juga memuat filter kelas dan hasil pencarian secara paralel. `src/app/loading.tsx` menampilkan kerangka saat server masih menyiapkan halaman. Waktu respons aktual belum diukur karena sesi Preview terautentikasi dan koneksi Supabase staging belum tersedia.
 
 ## Matriks cakupan
 
